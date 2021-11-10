@@ -1,2 +1,3 @@
 # My-Shared-Notebooks
-Contains the notebooks that can be read by people
+This repo contains acquired certification in Data Science, Machine Learning etc and also notebooks containing Hands-on. Some results regarding YOLO- object detection model.
+Note: No Source code for security reasons.
