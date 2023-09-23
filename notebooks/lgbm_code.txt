@@ -1,0 +1,278 @@
+import numpy as np
+import gym
+
+# Define a simple environment with two contexts and three actions (classes)
+class ClassificationEnv(gym.Env):
+    def __init__(self):
+        self.n_contexts = 2
+        self.n_actions = 3
+        self.current_context = None
+        self.action_space = gym.spaces.Discrete(self.n_actions)
+        self.observation_space = gym.spaces.Discrete(self.n_contexts)
+        self.contexts = np.array([[0.2, 0.8], [0.8, 0.2]])
+        self.true_labels = np.array([0, 1, 2])
+        self.context_idx = 0
+
+    def reset(self):
+        self.current_context = self.contexts[self.context_idx]
+        self.context_idx = (self.context_idx + 1) % self.n_contexts
+        return self.current_context
+
+    def step(self, action):
+        if action == np.argmax(self.current_context):
+            reward = 1.0  # Correct classification
+        else:
+            reward = 0.0  # Incorrect classification
+        return self.current_context, reward, True, {}
+
+# Implement a simple Q-learning agent
+class QLearningAgent:
+    def __init__(self, n_actions, n_contexts, epsilon=0.1, alpha=0.1, gamma=0.9):
+        self.n_actions = n_actions
+        self.n_contexts = n_contexts
+        self.epsilon = epsilon  # Exploration probability
+        self.alpha = alpha  # Learning rate
+        self.gamma = gamma  # Discount factor
+        self.q_table = np.zeros((n_contexts, n_actions))
+
+    def select_action(self, context):
+        if np.random.rand() < self.epsilon:
+            return np.random.choice(self.n_actions)  # Exploration
+        else:
+            return np.argmax(self.q_table[context])
+
+    def update_q_table(self, context, action, reward, next_context):
+        old_value = self.q_table[context, action]
+        next_max = np.max(self.q_table[next_context])
+        new_value = (1 - self.alpha) * old_value + self.alpha * (reward + self.gamma * next_max)
+        self.q_table[context, action] = new_value
+
+# Training the Q-learning agent
+env = ClassificationEnv()
+agent = QLearningAgent(env.n_actions, env.n_contexts)
+
+num_episodes = 1000
+for episode in range(num_episodes):
+    context = env.reset()
+    for _ in range(100):  # Maximum of 100 steps per episode
+        action = agent.select_action(context)
+        next_context, reward, done, _ = env.step(action)
+        agent.update_q_table(context, action, reward, next_context)
+        context = next_context
+        if done:
+            break
+
+# Evaluate the agent's policy
+test_context = env.reset()
+test_episodes = 10
+total_rewards = 0
+for _ in range(test_episodes):
+    action = agent.select_action(test_context)
+    next_context, reward, done, _ = env.step(action)
+    total_rewards += reward
+    test_context = next_context
+
+average_reward = total_rewards / test_episodes
+print("Average Reward:", average_reward)
+
+########################################################################3
+
+
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from tensorflow.keras.datasets import mnist  # Replace with your dataset
+
+# Load and preprocess the dataset (replace with your dataset loading code)
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+x_train, x_test = x_train / 255.0, x_test / 255.0  # Normalize pixel values to [0, 1]
+
+# Define the deep neural network model
+model = keras.Sequential([
+    layers.Flatten(input_shape=(28, 28)),  # Input layer: Flatten 28x28 images
+    layers.Dense(128, activation='relu'),  # Hidden layer with 128 units and ReLU activation
+    layers.Dropout(0.2),  # Dropout layer to reduce overfitting
+    layers.Dense(10, activation='softmax')  # Output layer with 10 classes and softmax activation
+])
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',  # Use 'categorical_crossentropy' for one-hot encoded labels
+              metrics=['accuracy'])
+
+# Train the model
+model.fit(x_train, y_train, epochs=5)  # Adjust the number of epochs as needed
+
+# Evaluate the model on the test data
+test_loss, test_accuracy = model.evaluate(x_test, y_test)
+print(f'Test accuracy: {test_accuracy * 100:.2f}%')
+
+# Make predictions
+predictions = model.predict(x_test)
+
+# You can now use 'predictions' to make predictions on new data.
+
+
+####################################################################
+
+
+
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow import keras
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, classification_report
+
+# Load and preprocess the dataset (replace with your dataset loading code)
+# Here, we'll use the Titanic dataset from seaborn
+import seaborn as sns
+
+titanic = sns.load_dataset('titanic')
+titanic.dropna(inplace=True)  # Remove rows with missing values for simplicity
+titanic = pd.get_dummies(titanic, columns=['sex', 'class', 'alone'], drop_first=True)
+X = titanic.drop(columns=['survived'])
+y = titanic['survived']
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize the features (optional but often beneficial)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Define the DNN model
+model = keras.Sequential([
+    keras.layers.Input(shape=(X_train.shape[1],)),  # Input layer
+    keras.layers.Dense(64, activation='relu'),      # Hidden layer with 64 units and ReLU activation
+    keras.layers.Dropout(0.2),                      # Dropout layer to reduce overfitting
+    keras.layers.Dense(1, activation='sigmoid')     # Output layer for binary classification
+])
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',  # Binary cross-entropy for binary classification
+              metrics=['accuracy'])
+
+# Train the model
+model.fit(X_train, y_train, epochs=10, batch_size=32)  # Adjust the number of epochs and batch size as needed
+
+# Evaluate the model on the test data
+y_pred = (model.predict(X_test) > 0.5).astype(int)  # Convert probabilities to binary predictions
+test_accuracy = accuracy_score(y_test, y_pred)
+print(f'Test accuracy: {test_accuracy * 100:.2f}%')
+
+# Generate classification report
+print(classification_report(y_test, y_pred))
+
+
+$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+
+import lightgbm as lgb
+import optuna
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import roc_auc_score
+
+# Load your dataset (replace this with your data loading code)
+# X, y = load_data()
+
+# Split the data into training and validation sets
+X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Define the objective function for Optuna to optimize
+def objective(trial):
+    params = {
+        'objective': 'binary',
+        'metric': 'auc',
+        'boosting_type': 'gbdt',
+        'num_leaves': trial.suggest_int('num_leaves', 10, 200),
+        'learning_rate': trial.suggest_loguniform('learning_rate', 0.001, 0.1),
+        'feature_fraction': trial.suggest_uniform('feature_fraction', 0.1, 1.0),
+        'bagging_fraction': trial.suggest_uniform('bagging_fraction', 0.1, 1.0),
+        'bagging_freq': trial.suggest_int('bagging_freq', 1, 10),
+        'min_child_samples': trial.suggest_int('min_child_samples', 1, 100),
+        'min_child_weight': trial.suggest_loguniform('min_child_weight', 1e-5, 1e-1),
+        'lambda_l1': trial.suggest_loguniform('lambda_l1', 1e-5, 10.0),
+        'lambda_l2': trial.suggest_loguniform('lambda_l2', 1e-5, 10.0),
+    }
+
+    # Create a LightGBM dataset
+    train_data = lgb.Dataset(X_train, label=y_train)
+    valid_data = lgb.Dataset(X_valid, label=y_valid, reference=train_data)
+
+    # Train the LightGBM model
+    model = lgb.train(params, train_data, valid_sets=[valid_data], verbose_eval=False)
+
+    # Calculate ROC AUC on the validation set
+    y_pred = model.predict(X_valid)
+    auc = roc_auc_score(y_valid, y_pred)
+    return auc
+
+# Create an Optuna study and optimize the objective function
+study = optuna.create_study(direction='maximize')
+study.optimize(objective, n_trials=100)  # You can adjust the number of trials
+
+# Get the best hyperparameters
+best_params = study.best_params
+best_auc = study.best_value
+
+print(f"Best ROC AUC: {best_auc:.4f}")
+print(f"Best Hyperparameters: {best_params}")
+
+
+
+#############################3
+
+
+import lightgbm as lgb
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.metrics import roc_auc_score
+
+# Load your dataset (replace this with your data loading code)
+# X, y = load_data()
+
+# Split the data into training and validation sets
+X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Define a range of hyperparameters to search
+param_grid = {
+    'num_leaves': [10, 20, 30, 40],
+    'learning_rate': [0.001, 0.01, 0.1],
+    'max_depth': [5, 10, 15],
+    'min_child_samples': [1, 5, 10],
+    'lambda_l1': [0, 1, 5],
+    'lambda_l2': [0, 1, 5],
+    'bagging_fraction': [0.7, 0.8, 0.9],
+    'feature_fraction': [0.7, 0.8, 0.9]
+}
+
+# Create a LightGBM model
+lgb_model = lgb.LGBMClassifier(objective='binary', metric='auc', boosting_type='gbdt')
+
+# Perform grid search with cross-validation
+grid_search = GridSearchCV(estimator=lgb_model, param_grid=param_grid, 
+                           scoring='roc_auc', cv=3, verbose=1, n_jobs=-1)
+
+grid_search.fit(X_train, y_train)
+
+# Get the best hyperparameters and model
+best_params = grid_search.best_params_
+best_model = grid_search.best_estimator_
+
+# Calculate ROC AUC on the validation set using the best model
+y_pred = best_model.predict_proba(X_valid)[:, 1]
+auc = roc_auc_score(y_valid, y_pred)
+
+print(f"Best ROC AUC: {auc:.4f}")
+print(f"Best Hyperparameters: {best_params}")
+
+
+
