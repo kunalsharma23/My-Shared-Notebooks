@@ -1,0 +1,166 @@
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+
+# Sample dataset (replace this with your own dataset)
+data = {
+    'X1': [1, 2, 3, 4, 5],
+    'X2': [2, 3, 4, 5, 6],
+    'X3': [3, 4, 5, 6, 7],
+    'Y': [5, 8, 11, 14, 17]
+}
+
+df = pd.DataFrame(data)
+
+# Stepwise regression function
+def stepwise_regression(df, response_col, max_features=None):
+    X = df.drop(columns=[response_col])
+    y = df[response_col]
+    n, p = X.shape
+
+    if max_features is None:
+        max_features = p
+
+    selected_features = []
+
+    for _ in range(max_features):
+        remaining_features = [feature for feature in X.columns if feature not in selected_features]
+        best_feature = None
+        best_model = None
+        best_aic = float('inf')
+
+        for feature in remaining_features:
+            current_features = selected_features + [feature]
+            X_current = X[current_features]
+            X_current = sm.add_constant(X_current)
+            model = sm.OLS(y, X_current).fit()
+            aic = model.aic
+
+            if aic < best_aic:
+                best_aic = aic
+                best_feature = feature
+                best_model = model
+
+        if best_feature is not None:
+            selected_features.append(best_feature)
+            final_model = best_model
+        else:
+            break
+
+    return final_model, selected_features
+
+# Perform stepwise regression
+response_column = 'Y'
+final_model, selected_features = stepwise_regression(df, response_column)
+
+# Print selected features and model summary
+print("Selected Features:", selected_features)
+print("\nModel Summary:")
+print(final_model.summary())
+ 
+
+!pip install statmodels
+
+
+def stepwise_regression_with_fixed_features(df, response_col, fixed_features=None, max_features=None):
+    X = df.drop(columns=[response_col])
+    y = df[response_col]
+    n, p = X.shape
+
+    if max_features is None:
+        max_features = p
+
+    selected_features = fixed_features.copy() if fixed_features else []
+
+    for _ in range(max_features):
+        remaining_features = [feature for feature in X.columns if feature not in selected_features]
+        best_feature = None
+        best_model = None
+        best_aic = float('inf')
+
+        for feature in remaining_features:
+            current_features = selected_features + [feature]
+            X_current = X[current_features]
+            X_current = sm.add_constant(X_current)
+            model = sm.OLS(y, X_current).fit()
+            aic = model.aic
+
+            if aic < best_aic:
+                best_aic = aic
+                best_feature = feature
+                best_model = model
+
+        if best_feature is not None:
+            selected_features.append(best_feature)
+            final_model = best_model
+        else:
+            break
+
+    return final_model, selected_features
+
+# Usage example with fixed features
+response_column = 'Y'
+fixed_features = ['X1', 'X2']  # Specify the features you want to fix
+final_model, selected_features = stepwise_regression_with_fixed_features(df, response_column, fixed_features)
+
+# Print selected features and model summary
+print("Selected Features:", selected_features)
+print("\nModel Summary:")
+print(final_model.summary())
+
+
+
+
+def stepwise_regression_with_excluded_features(df, response_col, excluded_features=None, max_features=None):
+    X = df.drop(columns=[response_col])
+    y = df[response_col]
+    n, p = X.shape
+
+    if max_features is None:
+        max_features = p
+
+    selected_features = []
+
+    for _ in range(max_features):
+        remaining_features = [feature for feature in X.columns if feature not in selected_features and feature not in excluded_features]
+        best_feature = None
+        best_model = None
+        best_aic = float('inf')
+
+        for feature in remaining_features:
+            current_features = selected_features + [feature]
+            X_current = X[current_features]
+            X_current = sm.add_constant(X_current)
+            model = sm.OLS(y, X_current).fit()
+            aic = model.aic
+
+            if aic < best_aic:
+                best_aic = aic
+                best_feature = feature
+                best_model = model
+
+        if best_feature is not None:
+            selected_features.append(best_feature)
+            final_model = best_model
+        else:
+            break
+
+    return final_model, selected_features
+
+# Usage example with excluded features
+response_column = 'Y'
+excluded_features = ['X3']  # Specify the features you want to exclude
+final_model, selected_features = stepwise_regression_with_excluded_features(df, response_column, excluded_features)
+
+# Print selected features and model summary
+print("Selected Features:", selected_features)
+print("\nModel Summary:")
+print(final_model.summary())
+
+
+
+
+
+
+
+
